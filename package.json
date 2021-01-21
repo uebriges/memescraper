@@ -26,6 +26,8 @@
     "typescript": "4.1.3"
   },
   "dependencies": {
+    "@upleveled/preflight": "^1.2.1",
+    "jimp": "^0.16.1",
     "jsdom": "^16.4.0"
   }
 }
