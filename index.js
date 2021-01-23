@@ -126,10 +126,8 @@ if (process.argv[2] && process.argv[2].slice(0, 5) === 'https') {
     if (err) {
     }
   });
-
   // Print the static part of the progress bar
   process.stdout.write('[          ] Downloading ... ');
-
   // Do the scraping
   fetchWebSite() // Download/Fetch the website
     .then((value) => {
