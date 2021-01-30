@@ -7,7 +7,7 @@ const jimp = require('jimp');
 const { JSDOM } = jsdom;
 
 // ----------- Downloads the HTML of the website and returns a list of the first 10 img links (src) -----------
-function fetchWebSite() {
+function fetchWebsite() {
   return new Promise((resolve, reject) => {
     let data = '';
     https.get(process.argv[2], (res) => {
@@ -72,7 +72,8 @@ function downloadImages(linkList) {
           })
           .on('error', (err) => {
             reject(err);
-          });
+          })
+          .on('close', () => {});
       });
     }
   });
@@ -112,7 +113,6 @@ function drawMeme(greeting, nameToGreet) {
         );
         pic.background(0xffffffff);
         pic.write('./memes/bender.jpg');
-        console.log('Check out your custom meme unter ./memes/bender.jpg');
       });
     },
   );
@@ -122,14 +122,11 @@ function drawMeme(greeting, nameToGreet) {
 // Possible optimization: Make the progress bar dynamic by keeping always 10 x '#' but fill it out in relation to the number of pictures to be downloaded
 if (process.argv[2] && process.argv[2].slice(0, 5) === 'https') {
   // Create 'memes' folder
-  fs.mkdir('./memes', (err) => {
-    if (err) {
-    }
-  });
+  fs.mkdirSync('./memes');
   // Print the static part of the progress bar
   process.stdout.write('[          ] Downloading ... ');
   // Do the scraping
-  fetchWebSite() // Download/Fetch the website
+  fetchWebsite() // Download/Fetch the website
     .then((value) => {
       downloadImages(value); // Download images and store them in created folder
     })
