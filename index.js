@@ -2,12 +2,18 @@ const https = require('https');
 const fs = require('fs');
 const jsdom = require('jsdom');
 const jimp = require('jimp');
+const cliProgress = require('cli-progress');
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const { JSDOM } = jsdom;
+const progressBarDownloadMemes = new cliProgress.SingleBar(
+  {},
+  cliProgress.Presets.shades_classic,
+);
 
 // ----------- Downloads the HTML of the website and returns a list of the first 10 img links (src) -----------
 function fetchWebsite() {
+  progressBarDownloadMemes.start(100, 0);
   return new Promise((resolve, reject) => {
     let data = '';
     https.get(process.argv[2], (res) => {
@@ -40,8 +46,10 @@ function fetchWebsite() {
 
 // ----------- Downloads the images based on the list of links (linkList) -----------
 function downloadImages(linkList) {
-  return new Promise((resolve, reject) => {
-    for (let i = 0; i < linkList.length; i++) {
+  const promisesArray = [];
+  // Try it with Promise.all(), passing in array of promises, mapping over the link list
+  for (let i = 0; i < linkList.length; i++) {
+    const promise = new Promise((resolve, reject) => {
       https.get(linkList[i], (res) => {
         let imgs = '';
         res
@@ -58,25 +66,17 @@ function downloadImages(linkList) {
                 if (err) throw err;
               },
             );
-            if (i === 9) {
-              resolve(
-                process.stdout.cursorTo(i + 1),
-                process.stdout.write('#'),
-                process.stdout.cursorTo(29),
-                process.stdout.write('done'),
-              );
-            } else {
-              process.stdout.cursorTo(i + 1);
-              process.stdout.write('#');
-            }
+            progressBarDownloadMemes.increment(10);
+            resolve('done');
           })
           .on('error', (err) => {
             reject(err);
-          })
-          .on('close', () => {});
+          });
       });
-    }
-  });
+    });
+    promisesArray.push(promise);
+  }
+  return promisesArray;
 }
 
 // ----------- Draws a custom meme -----------
@@ -122,13 +122,15 @@ function drawMeme(greeting, nameToGreet) {
 // Possible optimization: Make the progress bar dynamic by keeping always 10 x '#' but fill it out in relation to the number of pictures to be downloaded
 if (process.argv[2] && process.argv[2].slice(0, 5) === 'https') {
   // Create 'memes' folder
-  fs.mkdirSync('./memes');
+  fs.mkdir('./memes', () => {});
   // Print the static part of the progress bar
-  process.stdout.write('[          ] Downloading ... ');
   // Do the scraping
   fetchWebsite() // Download/Fetch the website
     .then((value) => {
-      downloadImages(value); // Download images and store them in created folder
+      Promise.all(downloadImages(value)).then((value) => {
+        progressBarDownloadMemes.stop();
+        console.log('Your memes have been downloaded to the /memes folder');
+      }); // Download images and store them in created folder
     })
     .catch((err) => {
       console.log(err);

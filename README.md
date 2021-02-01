@@ -34,4 +34,4 @@ Here is an example:
 
 `node index.js Hello Bender bender`
 
-![Bender with "Hello Bender" text generated into the image](bender.jpg)
+<img src="bender.jpg" width="20%">
