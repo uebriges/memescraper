@@ -12,27 +12,25 @@ const progressBarDownloadMemes = new cliProgress.SingleBar(
 );
 
 // ----------- Downloads the HTML of the website and returns a list of the first 10 img links (src) -----------
-function fetchWebsite() {
+function fetchWebsite(url) {
   progressBarDownloadMemes.start(100, 0);
   return new Promise((resolve, reject) => {
     let data = '';
-    https.get(process.argv[2], (res) => {
+    https.get(url, (res) => {
       try {
         res
           .on('data', (chunk) => {
             data += chunk;
           })
-          .setEncoding('utf8')
           .on('end', () => {
             const linksToMemes = [];
-            const dom = new JSDOM(data.toString(), {
-              includeNodeLocations: true,
-            });
+            const dom = new JSDOM(data);
             const imgList = dom.window.document.querySelectorAll('img');
-            for (const element of imgList.values()) {
-              linksToMemes.push(element.src);
+
+            for (let imageNr = 0; imageNr < 10; imageNr++) {
+              linksToMemes.push(imgList[imageNr].src);
             }
-            resolve(linksToMemes.slice(0, 10));
+            resolve(linksToMemes);
           });
         res.on('error', (err) => {
           reject(err);
@@ -48,26 +46,30 @@ function fetchWebsite() {
 function downloadImages(linkList) {
   const promisesArray = [];
   // Try it with Promise.all(), passing in array of promises, mapping over the link list
-  for (let i = 0; i < linkList.length; i++) {
+  for (
+    let currentLinkIndex = 0;
+    currentLinkIndex < linkList.length;
+    currentLinkIndex++
+  ) {
     const promise = new Promise((resolve, reject) => {
-      https.get(linkList[i], (res) => {
-        let imgs = '';
+      https.get(linkList[currentLinkIndex], (res) => {
+        let imgBinaryData = '';
         res
           .on('data', (chunk) => {
-            imgs += chunk;
+            imgBinaryData += chunk;
           })
           .setEncoding('binary')
           .on('end', () => {
             fs.writeFile(
-              `./memes/test${i}.jpeg`,
-              imgs,
+              `./memes/test${currentLinkIndex}.jpeg`,
+              imgBinaryData,
               'binary',
               function (err) {
                 if (err) throw err;
               },
             );
-            progressBarDownloadMemes.increment(10);
             resolve('done');
+            progressBarDownloadMemes.increment(10);
           })
           .on('error', (err) => {
             reject(err);
@@ -120,12 +122,20 @@ function drawMeme(greeting, nameToGreet) {
 
 // ----------- Actual application -----------
 // Possible optimization: Make the progress bar dynamic by keeping always 10 x '#' but fill it out in relation to the number of pictures to be downloaded
+
+// Create 'memes' folder
+if (!fs.existsSync('./memes')) {
+  fs.mkdir('./memes', (err) => {
+    if (err) {
+      console.log(err);
+    }
+  });
+}
+
 if (process.argv[2] && process.argv[2].slice(0, 5) === 'https') {
-  // Create 'memes' folder
-  fs.mkdir('./memes', () => {});
   // Print the static part of the progress bar
   // Do the scraping
-  fetchWebsite() // Download/Fetch the website
+  fetchWebsite(process.argv[2]) // Download/Fetch the website
     .then((value) => {
       Promise.all(downloadImages(value)).then((value) => {
         progressBarDownloadMemes.stop();
@@ -137,9 +147,18 @@ if (process.argv[2] && process.argv[2].slice(0, 5) === 'https') {
     });
 } else {
   if (!process.argv[2] || !process.argv[3] || !process.argv[2]) {
-    console.log(
-      "Enter either a https address or enter a greeting, a name and 'bender'",
-    );
+    // Print the static part of the progress bar
+    // Do the scraping
+    fetchWebsite('https://memegen-link-examples-upleveled.netlify.app/') // Download/Fetch the website
+      .then((value) => {
+        Promise.all(downloadImages(value)).then((value) => {
+          progressBarDownloadMemes.stop();
+          console.log('Your memes have been downloaded to the /memes folder');
+        }); // Download images and store them in created folder
+      })
+      .catch((err) => {
+        console.log(err);
+      });
   } else {
     drawMeme(process.argv[2], process.argv[3]); // Creates bender meme with greeting an name
   }

@@ -1,7 +1,7 @@
 {
   "name": "memescraper",
   "version": "1.0.0",
-  "description": "Scraps the first 10 images from memegen-link-examples-upleveled.netlify.app",
+  "description": "Scrapes the first 10 images from memegen-link-examples-upleveled.netlify.app",
   "main": "index.js",
   "repository": "https://github.com/uebriges/memescraper.git",
   "author": "Uebriges <uebriges@gmx.at>",
